@@ -2,7 +2,9 @@ package Controller;
 
 import model.Books;
 import model.DaoInterface;
+import model.Returns;
 import model.Users;
+import org.mindrot.jbcrypt.BCrypt;
 import server.ServerRun;
 import synchronization.insertLog;
 
@@ -20,11 +22,13 @@ import java.util.regex.Pattern;
 
 public class UserController extends UnicastRemoteObject implements DaoInterface<Users> {
     private Connection connection;
-    private ArrayList<String> user_name = new ArrayList<>();
+    private ArrayList<String> user_name_insystem = new ArrayList<>();
     private final Lock lock = new ReentrantLock();
     private static Map<String, Date> users_login_success = new HashMap<>();
     private static final String PASSWORD_REGEX = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#$%^&*()])[A-Za-z\\d@#$%^&*()]{8,}$";
-    private static final Pattern pattern = Pattern.compile(PASSWORD_REGEX);
+    private static final Pattern pattern_pass = Pattern.compile(PASSWORD_REGEX);
+    private static final String EMAIL_REGEX = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+    private static final Pattern pattern_email = Pattern.compile(EMAIL_REGEX);
 
     public UserController(Connection connection) throws RemoteException {
         this.connection = connection;
@@ -35,6 +39,16 @@ public class UserController extends UnicastRemoteObject implements DaoInterface<
 
     }
 
+    // Hàm mã hóa password
+    public static String hashPassword(String plainPassword) {
+        return BCrypt.hashpw(plainPassword, BCrypt.gensalt());
+    }
+
+    // Hàm kiểm tra password
+    public static boolean checkPassword(String inputPassword, String hashedPassword) {
+        return BCrypt.checkpw(inputPassword, hashedPassword);
+    }
+
     // Mượn phương thức insert để thêm mới người dùng ( chức năng đăng ký )
     @Override
     public int insert(Users users) throws RemoteException {
@@ -42,25 +56,33 @@ public class UserController extends UnicastRemoteObject implements DaoInterface<
         int check = 0;
         try {
             ArrayList<Users> list_user = selectAll();
+            user_name_insystem.clear();
             for(Users user : list_user){
-                user_name.add(user.getUsername());
+                user_name_insystem.add(user.getUsername());
             }
-            if (user_name.contains(users.getUsername())) {
+            if (user_name_insystem.contains(users.getUsername())) {
                 System.out.println(users.getUsername() + " already exists");
                 check = 2;
             } else {
-                Matcher matcher = pattern.matcher(users.getPassword());
-                if(matcher.matches() == false){
+                Matcher matcher_pass = pattern_pass.matcher(users.getPassword());
+//                Matcher matcher_email = pattern_email.matcher(users.getUsername());
+                if(matcher_pass.matches() == false){
                     System.out.println("Password isn't in correct format.");
                     check = 3;
-                }else{
+                }
+//                else if(matcher_email.matches() == false){
+//                    System.out.println("Username isn't in correct format.");
+//                    check = 4;
+//                }
+                else{
                     // Tạo ra đối tượng PreparedStatement
                     String sql = "INSERT INTO users(username, password, address, phonenumber)"
                             + " VALUE(?, ?, ?, ?)";
                     PreparedStatement pst = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
                     pst.setString(1, users.getUsername());
-                    pst.setString(2, users.getPassword());
+                    String hashedPassword = hashPassword(users.getPassword());
+                    pst.setString(2, hashedPassword);
                     pst.setString(3,"VietNam");
                     pst.setString(4, "093452123");
 
@@ -85,6 +107,8 @@ public class UserController extends UnicastRemoteObject implements DaoInterface<
         return check;
     }
 
+
+
     @Override
     // Mượn phương thức update để check người dùng ( chức năng đăng nhập )
     public int update(Users users) throws RemoteException {
@@ -97,7 +121,9 @@ public class UserController extends UnicastRemoteObject implements DaoInterface<
             for(Users user : list_user){
                 boolean areEqual = user.getUsername().equals(username_input); // So sánh nghĩa chính xác
                 if(areEqual == true){
-                    boolean areEqual2 = user.getPassword().equals(password_input); // So sánh nghĩa chính xác
+                    // Kiểm tra mật khẩu
+                    boolean areEqual2 = checkPassword(password_input, user.getPassword());
+                    // boolean areEqual2 = user.getPassword().equals(password_input); // So sánh nghĩa chính xác
                     if(areEqual2 == true){
                         check = 1;
                         break;
@@ -183,12 +209,12 @@ public class UserController extends UnicastRemoteObject implements DaoInterface<
     }
 
     @Override
-    public Users selectById(Users users) throws RemoteException {
+    public ArrayList<Users> selectListById(int id_suport) throws RemoteException {
         return null;
     }
 
     @Override
-    public ArrayList<Users> selectByCondition(String condition) throws RemoteException {
+    public Users selectById(Users users) throws RemoteException {
         return null;
     }
 
@@ -208,7 +234,18 @@ public class UserController extends UnicastRemoteObject implements DaoInterface<
     }
 
     @Override
-    public ArrayList<Users> selectListById(int id_suport) throws RemoteException {
-        return null;
+    public int insert_comp(ArrayList<Books> books, Users users) throws RemoteException {
+        return 0;
     }
+
+    @Override
+    public int update_comp(ArrayList<Books> books, Users users) throws RemoteException {
+        return 0;
+    }
+
+    @Override
+    public int delete_comp(ArrayList<Books> books, Users users) throws RemoteException {
+        return 0;
+    }
+
 }

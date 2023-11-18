@@ -121,7 +121,6 @@ public class DataSynchronization {
                                 databaseSynchronization(readerController, operation1, reader);
                                 break;
                             case "returns":
-                                System.out.println("hello1");
                                 ReturnController returnController = new ReturnController(connection2);
                                 String[] tokens_6 = data1.split("_");
                                 int id_return = Integer.parseInt(tokens_6[0]);

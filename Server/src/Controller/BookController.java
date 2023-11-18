@@ -1,6 +1,7 @@
 package Controller;
 
 import model.Books;
+import model.Borrows;
 import model.DaoInterface;
 import synchronization.insertLog;
 
@@ -19,7 +20,6 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
         this.connection = connection;
     }
 
-
     @Override
     public void client_access(String ip_client) throws RemoteException {
 //        while(true){
@@ -34,7 +34,21 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
 //            int check = update(books);
 //        }).start();
 //        return 0;
+        //import java.time.Instant;
+//import java.time.Duration;
+//
+//    Instant start = Instant.now();
+//    // Code bạn muốn đo thời gian thực hiện
+//    Instant end = Instant.now();
+//
+//    Duration duration = Duration.between(start, end);
+//    long millis = duration.toMillis();
 
+    }
+
+    @Override
+    public int insert_comp(ArrayList<Books> books, Books book) throws RemoteException {
+        return 0;
     }
 
     @Override
@@ -79,6 +93,11 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
     }
 
     @Override
+    public int update_comp(ArrayList<Books> books, Books book) throws RemoteException {
+        return 0;
+    }
+
+    @Override
     public int update(Books books)  throws RemoteException{
         lock.lock();
         int check = 0;
@@ -107,6 +126,7 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
             int quantity_book_old = book.getQuantity();
             int quantity_book_new = books.getQuantity();
             int quantity_book_insert = quantity_book_new - quantity_book_old;
+//            books = selectById(books);
             pst.setInt(7, books.getQuantity_remaining() + quantity_book_insert);
             pst.setInt(8, books.getId());
 
@@ -140,6 +160,11 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
     }
 
     @Override
+    public int delete_comp(ArrayList<Books> books, Books book) throws RemoteException {
+        return 0;
+    }
+
+    @Override
     public int delete(Books books)  throws RemoteException{
         lock.lock();
         int check = 0;
@@ -154,7 +179,7 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
             pst.setInt(1, books.getId());
 
             // check = số lượng dòng thay đổi trong database
-            Thread.sleep(5000);
+//            Thread.sleep(5000);
             check = pst.executeUpdate();
             if(check > 0){
                 System.out.println("Delete book Success");
@@ -174,15 +199,7 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
         }
         return check;
     }
-//import java.time.Instant;
-//import java.time.Duration;
-//
-//    Instant start = Instant.now();
-//    // Code bạn muốn đo thời gian thực hiện
-//    Instant end = Instant.now();
-//
-//    Duration duration = Duration.between(start, end);
-//    long millis = duration.toMillis();
+
     @Override
     public ArrayList<Books> selectAll()  throws RemoteException{
         ArrayList<Books> check = new ArrayList<Books>();
@@ -283,37 +300,32 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
     }
 
     @Override
-    public ArrayList<Books> selectByCondition(String condition)  throws RemoteException{
+    public ArrayList<Books> selectListById(int id_suport) throws RemoteException {
         ArrayList<Books> check = new ArrayList<Books>();
         try {
-//            Connection connection = JDBCUtil.getConnection();
-
-            String sql = "SELECT * FROM books where " + condition + " ORDER BY name ASC ";
+            String sql = "SELECT * FROM list_book_borrow" +
+                    " WHERE id_borrow=   ?  ";
 
             PreparedStatement pst = connection.prepareStatement(sql);
 
+            pst.setInt(1, id_suport);
+
             ResultSet rs = pst.executeQuery();
 
-            while (rs.next()){
-                int id = rs.getInt("id");
-                String name = rs.getString("name");
-                String author = rs.getString("author");
-                String category = rs.getString("category");
-                String pub_year = rs.getString("pub_year");
-                String pub_company = rs.getString("pub_company");
-                int quantity = rs.getInt("quantity");
-                int quantity_remaining = rs.getInt("quantity_remaining");
+            while(rs.next()){
+                int id_book = rs.getInt("id_book");
+                Books books = new Books();
+                books.setId(id_book);
 
-                Books book = new Books(id, name, author, category, pub_company, pub_year, quantity, quantity_remaining);
-                check.add(book);
+                Books new_book = selectById(books);
+                check.add(new_book);
             }
-//            JDBCUtil.closeConnection(connection);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
         return check;
     }
-
 
     @Override
     public int insert_list(ArrayList<Books> books, int id_suport) throws RemoteException {
@@ -331,13 +343,6 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
 
                 String data = "0" + "_" + id_suport + "_" + book.getId();
                 new insertLog(connection, "INSERT_LIST", "list_book_borrow", data, true);
-            }
-
-            // Xử lý kết quả
-            if(check == books.size()){
-                System.out.println("Insert borrow Success");
-            }else{
-                System.out.println("Insert borrow Failed");
             }
 
         } catch (Exception e) {
@@ -377,49 +382,7 @@ public class BookController extends UnicastRemoteObject implements DaoInterface<
 
     @Override
     public int update_list(ArrayList<Books> books, int id_borrow) throws RemoteException {
-//        int check = 0;
-//        try{
-//            for(Books book : books){
-//                // update quantity remaining book after return
-//                Books book_old = selectById(book);
-//                book_old.setQuantity_remaining(book_old.getQuantity_remaining()+1);
-//                update(book_old);
-//
-//                check++;
-//            }
-//            new DataSynchronization();
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
         return 0;
     }
 
-    @Override
-    public ArrayList<Books> selectListById(int id_suport) throws RemoteException {
-        ArrayList<Books> check = new ArrayList<Books>();
-        try {
-                String sql = "SELECT * FROM list_book_borrow" +
-                        " WHERE id_borrow=   ?  ";
-
-                PreparedStatement pst = connection.prepareStatement(sql);
-
-                pst.setInt(1, id_suport);
-
-                ResultSet rs = pst.executeQuery();
-
-                while(rs.next()){
-                    int id_book = rs.getInt("id_book");
-                    Books books = new Books();
-                    books.setId(id_book);
-
-                    Books new_book = selectById(books);
-                    check.add(new_book);
-                }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return check;
-    }
 }

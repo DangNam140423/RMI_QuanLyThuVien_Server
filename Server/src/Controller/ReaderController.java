@@ -1,6 +1,7 @@
 package Controller;
 
 import model.Books;
+import model.Categories;
 import model.Readers;
 import model.DaoInterface;
 import synchronization.insertLog;
@@ -190,6 +191,11 @@ public class ReaderController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
+    public ArrayList<Readers> selectListById(int id_suport) throws RemoteException {
+        return null;
+    }
+
+    @Override
     public Readers selectById(Readers readers) throws RemoteException {
         Readers check = null;
         try {
@@ -221,11 +227,6 @@ public class ReaderController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
-    public ArrayList<Readers> selectByCondition(String condition) throws RemoteException {
-        return null;
-    }
-
-    @Override
     public int insert_list(ArrayList<Readers> t, int id_suport) throws RemoteException {
         return 0;
     }
@@ -241,7 +242,18 @@ public class ReaderController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
-    public ArrayList<Readers> selectListById(int id_suport) throws RemoteException {
-        return null;
+    public int insert_comp(ArrayList<Books> books, Readers readers) throws RemoteException {
+        return 0;
     }
+
+    @Override
+    public int update_comp(ArrayList<Books> books, Readers readers) throws RemoteException {
+        return 0;
+    }
+
+    @Override
+    public int delete_comp(ArrayList<Books> books, Readers readers) throws RemoteException {
+        return 0;
+    }
+
 }

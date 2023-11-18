@@ -1,5 +1,6 @@
 package Controller;
 
+import model.Books;
 import model.Categories;
 import model.DaoInterface;
 import model.Readers;
@@ -25,12 +26,27 @@ public class CategoryController extends UnicastRemoteObject implements DaoInterf
     }
 
     @Override
+    public int insert_comp(ArrayList<Books> books, Categories categories) throws RemoteException {
+        return 0;
+    }
+
+    @Override
     public int insert(Categories categories) throws RemoteException {
         return 0;
     }
 
     @Override
+    public int update_comp(ArrayList<Books> books, Categories categories) throws RemoteException {
+        return 0;
+    }
+
+    @Override
     public int update(Categories categories) throws RemoteException {
+        return 0;
+    }
+
+    @Override
+    public int delete_comp(ArrayList<Books> books, Categories categories) throws RemoteException {
         return 0;
     }
 
@@ -71,11 +87,6 @@ public class CategoryController extends UnicastRemoteObject implements DaoInterf
 
     @Override
     public Categories selectById(Categories categories) throws RemoteException {
-        return null;
-    }
-
-    @Override
-    public ArrayList<Categories> selectByCondition(String condition) throws RemoteException {
         return null;
     }
 

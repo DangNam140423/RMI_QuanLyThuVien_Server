@@ -1,9 +1,6 @@
 package Controller;
 
-import model.Books;
-import model.Borrows;
-import model.DaoInterface;
-import model.Returns;
+import model.*;
 import synchronization.DataSynchronization;
 import synchronization.insertLog;
 
@@ -29,7 +26,49 @@ public class ReturnController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
+    public int insert_comp(ArrayList<Books> books, Returns returns) throws RemoteException {
+        lock.lock();
+        // ArrayList<Books> books not use
+        int check = 0;
+        int check2 = 0;
+        int check3 = 0;
+        BorrowController borrowController = new BorrowController(connection);
+        BookController bookController = new BookController(connection);
+        try{
+            // insert returns in Returns table
+            check = insert(returns);
+            if(check == 1){
+                Borrows borrows = new Borrows();
+                borrows.setId(returns.getId_borrow());
+                borrows = borrowController.selectById(borrows);
+                borrows.setStatus_return(true);
+                // update status_return in Borrows table = true
+                check2 = borrowController.update(borrows);
+
+                ArrayList<Books> list_book = bookController.selectListById(returns.getId_borrow());
+                for(Books book : list_book){
+                    book.setQuantity_remaining(book.getQuantity_remaining() + 1);
+                    // update quantity remaining book in Books table
+                    bookController.update(book);
+                    check3++;
+                }
+
+                if(check2 != 1 && check3 != list_book.size()){
+                    check = 0;
+                }
+            }
+
+        } catch(Exception e){
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+        return check;
+    }
+
+    @Override
     public int insert(Returns returns) throws RemoteException {
+        lock.lock();
         int check = 0;
         try {
             Borrows borrows = new Borrows();
@@ -70,6 +109,8 @@ public class ReturnController extends UnicastRemoteObject implements DaoInterfac
 
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            lock.unlock();
         }
         return check;
     }
@@ -170,11 +211,6 @@ public class ReturnController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
-    public ArrayList<Returns> selectByCondition(String condition) throws RemoteException {
-        return null;
-    }
-
-    @Override
     public int insert_list(ArrayList<Returns> t, int id_suport) throws RemoteException {
         return 0;
     }
@@ -192,5 +228,15 @@ public class ReturnController extends UnicastRemoteObject implements DaoInterfac
     @Override
     public ArrayList<Returns> selectListById(int id_suport) throws RemoteException {
         return null;
+    }
+
+    @Override
+    public int update_comp(ArrayList<Books> books, Returns returns) throws RemoteException {
+        return 0;
+    }
+
+    @Override
+    public int delete_comp(ArrayList<Books> books, Returns returns) throws RemoteException {
+        return 0;
     }
 }

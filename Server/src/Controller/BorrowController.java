@@ -11,9 +11,12 @@ import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class BorrowController extends UnicastRemoteObject implements DaoInterface<Borrows> {
     private Connection connection;
+    private final Lock lock = new ReentrantLock();
     public BorrowController(Connection connection) throws RemoteException {
         this.connection = connection;
     }
@@ -25,7 +28,48 @@ public class BorrowController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
+    public int insert_comp(ArrayList<Books> books, Borrows borrows) throws RemoteException {
+        lock.lock();
+        int check1 = 0;
+        int check2 = 0;
+        int id_borrow_vuathem = 0;
+        BookController bookController = new BookController(connection);
+        try{
+            Thread.sleep(5000);
+            // insert borrow
+            id_borrow_vuathem = insert(borrows);
+            if(id_borrow_vuathem != 0){
+                // insert list book after borrow
+                check1 = bookController.insert_list(books, id_borrow_vuathem);
+                if(check1 == books.size()){
+                    for(Books book : books){
+                        book = bookController.selectById(book);
+                        book.setQuantity_remaining(book.getQuantity_remaining() - 1);
+                        // update quantity remaining book after borrow
+                        bookController.update(book);
+                        check2++;
+                    }
+                }
+            }
+
+            // Xử lý kết quả
+            if(check2 == books.size()){
+                System.out.println("Insert borrow Success");
+            }else{
+                System.out.println("Insert borrow Failed");
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+        return check2;
+    }
+
+    @Override
     public int insert(Borrows borrows) throws RemoteException {
+        lock.lock();
         int id_borrow_vuathem = 0;
         try {
             // Tạo ra đối tượng PreparedStatement
@@ -54,8 +98,15 @@ public class BorrowController extends UnicastRemoteObject implements DaoInterfac
 
         } catch (Exception e) {
             e.printStackTrace();
+        }finally {
+            lock.unlock();
         }
         return id_borrow_vuathem;
+    }
+
+    @Override
+    public int update_comp(ArrayList<Books> books, Borrows borrows) throws RemoteException {
+        return 0;
     }
 
     @Override
@@ -85,6 +136,55 @@ public class BorrowController extends UnicastRemoteObject implements DaoInterfac
             e.printStackTrace();
         }
         return check;
+    }
+
+    @Override
+    public int delete_comp(ArrayList<Books> books, Borrows borrows) throws RemoteException {
+        lock.lock();
+        int check_1 = 0;
+        int check_2 = 0;
+        int check_3 = 0;
+        int check_4 = 0;
+        BookController bookController = new BookController(connection);
+        ReturnController returnController = new ReturnController(connection);
+        try{
+            // delete list books
+            check_1 = bookController.delete_list(books, borrows.getId());
+            // nếu mã mượn đó chưa trả sách ( status_return == flase, có nghĩa là thủ thư thêm nhầm )
+            // thì xóa phiếu mượn đã thêm nhầm và cập nhật lại số lượng sách trong phiếu mượn đó
+            // nếu mã mượn đó đã được trả sách ( status_return == true, có nghĩa là phiếu mượn này đã được trả )
+            // thì xóa phiếu mượn đó đồng thời xóa lun phiếu trả có id_borrow = mã phiếu mượn này
+            if(borrows.getStatus_return() == false){
+                for(Books book : books){
+                    book = bookController.selectById(book);
+                    book.setQuantity_remaining(book.getQuantity_remaining() + 1);
+                    // update quantity remaining book
+                    bookController.update(book);
+                    check_2++;
+                }
+            }else if(borrows.getStatus_return() == true){
+                ArrayList<Returns> list_returns = returnController.searchByName(String.valueOf(borrows.getId()));
+                if(list_returns != null){
+                    for(Returns returns : list_returns){
+                        // delete return have id_borrow = id ( Borrows )
+                        check_3 = returnController.delete(returns);
+                    }
+                }
+            }
+
+            if( (check_1 == books.size() && check_2 == books.size()) ||
+                (check_1 == books.size() && check_3 == 1) )
+            {
+                // delete list borrow
+                check_4 = delete(borrows);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+
+        return check_4;
     }
 
     @Override
@@ -185,6 +285,11 @@ public class BorrowController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
+    public ArrayList<Borrows> selectListById(int id_suport) throws RemoteException {
+        return null;
+    }
+
+    @Override
     public Borrows selectById(Borrows borrows) throws RemoteException {
         Borrows check = null;
         try {
@@ -214,11 +319,6 @@ public class BorrowController extends UnicastRemoteObject implements DaoInterfac
     }
 
     @Override
-    public ArrayList<Borrows> selectByCondition(String condition) throws RemoteException {
-        return null;
-    }
-
-    @Override
     public int insert_list(ArrayList<Borrows> t, int id_suport) throws RemoteException {
         return 0;
     }
@@ -233,8 +333,4 @@ public class BorrowController extends UnicastRemoteObject implements DaoInterfac
         return 0;
     }
 
-    @Override
-    public ArrayList<Borrows> selectListById(int id_suport) throws RemoteException {
-        return null;
-    }
 }
